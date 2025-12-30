@@ -21,6 +21,10 @@ let eventHandler = null;
 let callTimerInterval = null;
 let callSeconds = 0;
 
+// Conversation state
+let currentConversation = null;
+let isReadOnlyMode = false;
+
 // ============================================
 // 應用程式狀態
 // ============================================
@@ -37,12 +41,19 @@ const AppState = {
 let currentState = AppState.IDLE;
 
 function setState(newState) {
+    const wasInCall = isInCall();
     currentState = newState;
     ui.updateStatus(newState);
 
     // 更新按鈕狀態
     const isConnected = [AppState.CONNECTED, AppState.LISTENING, AppState.RESPONDING, AppState.WAITING].includes(newState);
     ui.updateCallButtons(isConnected);
+
+    // 通話狀態變更時，更新歷史面板的清除按鈕狀態
+    const nowInCall = isInCall();
+    if (wasInCall !== nowInCall && !ui.elements.historyPanel?.classList.contains('hidden')) {
+        refreshHistoryList();
+    }
 }
 
 // ============================================
@@ -75,6 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 綁定事件
     bindEvents();
 
+    // 頁面關閉保護
+    setupPageCloseProtection();
+
     console.log('✅ Web Voice Client initialized');
 });
 
@@ -104,6 +118,62 @@ function bindEvents() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // ========== History Panel Events ==========
+
+    // 新對話按鈕
+    const newChatBtn = document.getElementById('new-chat-btn');
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', handleNewChat);
+    }
+
+    // 歷史按鈕
+    const historyBtn = document.getElementById('history-btn');
+    if (historyBtn) {
+        historyBtn.addEventListener('click', () => {
+            ui.toggleHistoryPanel(true);
+            refreshHistoryList();
+        });
+    }
+
+    // 關閉歷史面板
+    const historyCloseBtn = document.getElementById('history-close-btn');
+    if (historyCloseBtn) {
+        historyCloseBtn.addEventListener('click', () => ui.toggleHistoryPanel(false));
+    }
+
+    // 歷史面板 Overlay
+    const historyOverlay = document.getElementById('history-overlay');
+    if (historyOverlay) {
+        historyOverlay.addEventListener('click', () => ui.toggleHistoryPanel(false));
+    }
+
+    // 清除全部按鈕
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener('click', handleClearHistory);
+    }
+
+    // 歷史列表點擊事件 (事件代理)
+    const historyList = document.getElementById('history-list');
+    if (historyList) {
+        historyList.addEventListener('click', (e) => {
+            // 刪除按鈕
+            if (e.target.classList.contains('history-item-delete')) {
+                e.stopPropagation();
+                const id = e.target.dataset.id;
+                handleDeleteConversation(id);
+                return;
+            }
+
+            // 點擊歷史項目
+            const historyItem = e.target.closest('.history-item');
+            if (historyItem) {
+                const id = historyItem.dataset.id;
+                handleLoadConversation(id);
+            }
+        });
     }
 }
 
@@ -146,6 +216,20 @@ async function handleStartCall() {
         console.warn('Already in call or connecting');
         return;
     }
+
+    // 離開唯讀模式
+    if (isReadOnlyMode) {
+        _startNewChat();
+    }
+
+    // 建立新對話
+    currentConversation = {
+        id: generateConversationId(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        title: '',
+        messages: []
+    };
 
     setState(AppState.CONNECTING);
 
@@ -195,6 +279,9 @@ async function handleStartCall() {
 // 掛斷通話
 // ============================================
 function handleHangup() {
+    // 強制儲存當前對話
+    conversationStorage.flush();
+
     if (webrtcManager) {
         webrtcManager.disconnect();
     }
@@ -207,10 +294,14 @@ function handleHangup() {
 // 登出
 // ============================================
 function handleLogout() {
-    handleHangup();
-    apiService.logout();
-    ui.clearMessages();
-    ui.showLoginView();
+    confirmIfInCall(() => {
+        conversationStorage.flush();
+        handleHangup();
+        conversationStorage.clear();  // 清除所有歷史
+        apiService.logout();
+        ui.clearMessages();
+        ui.showLoginView();
+    });
 }
 
 // ============================================
@@ -262,6 +353,17 @@ function handleAIMessage(data) {
     } else if (data.type === 'complete') {
         ui.updateCurrentAIMessage(data.text);
         ui.finalizeAIMessage();
+
+        // 儲存 complete 訊息到對話
+        if (currentConversation) {
+            currentConversation.messages.push({
+                role: 'ai',
+                text: data.text,
+                timestamp: Date.now()
+            });
+            currentConversation.updatedAt = Date.now();
+            conversationStorage.save(currentConversation);
+        }
     }
 }
 
@@ -270,6 +372,23 @@ function handleUserTranscript(data) {
         ui.addMessage(data.text, true, data.itemId);
     } else if (data.type === 'complete') {
         ui.updateMessage(data.itemId, data.text);
+
+        // 儲存 complete 訊息到對話 + 設定標題
+        if (currentConversation) {
+            currentConversation.messages.push({
+                role: 'user',
+                text: data.text,
+                timestamp: Date.now()
+            });
+
+            // 標題生成：第一句 complete user transcript
+            if (!currentConversation.title) {
+                currentConversation.title = data.text.slice(0, 30);
+            }
+
+            currentConversation.updatedAt = Date.now();
+            conversationStorage.save(currentConversation);
+        }
     } else if (data.type === 'timeout') {
         ui.updateMessage(data.itemId, data.text);
     }
@@ -288,6 +407,30 @@ function handleStateChange(state) {
 function handleRepairForm(data) {
     if (data.type === 'update') {
         ui.showRepairConfirmCard(data.data);
+
+        // 儲存卡片到對話 (upsert by cardId)
+        if (currentConversation) {
+            const cardId = currentConversation.id + '_repair';
+            const existingIndex = currentConversation.messages.findIndex(
+                m => m.role === 'card' && m.cardId === cardId
+            );
+
+            const cardMessage = {
+                role: 'card',
+                cardId: cardId,
+                data: data.data,
+                timestamp: Date.now()
+            };
+
+            if (existingIndex >= 0) {
+                currentConversation.messages[existingIndex] = cardMessage;
+            } else {
+                currentConversation.messages.push(cardMessage);
+            }
+
+            currentConversation.updatedAt = Date.now();
+            conversationStorage.save(currentConversation);
+        }
     }
 }
 
@@ -339,4 +482,162 @@ function handleMockCall() {
             }, 1000);
         }, 1500);
     }, 1000);
+}
+
+// ============================================
+// 對話管理
+// ============================================
+
+/**
+ * 生成唯一對話 ID
+ */
+function generateConversationId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+/**
+ * 檢查是否在通話中
+ */
+function isInCall() {
+    return [AppState.CONNECTED, AppState.LISTENING, AppState.RESPONDING, AppState.WAITING].includes(currentState);
+}
+
+/**
+ * 通話中確認提示
+ * @param {Function} action - 確認後執行的動作
+ */
+function confirmIfInCall(action) {
+    if (isInCall()) {
+        if (confirm('通話進行中，確定要離開嗎？')) {
+            action();
+        }
+    } else {
+        action();
+    }
+}
+
+/**
+ * 內部開新對話 (不經 confirm)
+ */
+function _startNewChat() {
+    ui.clearMessages();
+    currentConversation = null;
+    isReadOnlyMode = false;
+    ui.setReadOnlyMode(false);
+    setState(AppState.IDLE);
+}
+
+/**
+ * 開新對話 (使用者觸發，需 confirm)
+ */
+function handleNewChat() {
+    confirmIfInCall(() => {
+        if (isInCall()) {
+            handleHangup();
+        }
+        conversationStorage.flush();
+        _startNewChat();
+        ui.toggleHistoryPanel(false);
+    });
+}
+
+/**
+ * 載入歷史對話
+ */
+function handleLoadConversation(id) {
+    confirmIfInCall(() => {
+        if (isInCall()) {
+            handleHangup();
+        }
+        conversationStorage.flush();
+
+        const conversation = conversationStorage.getById(id);
+        if (!conversation) {
+            ui.showToast('對話不存在', 'error');
+            _startNewChat();
+            return;
+        }
+
+        currentConversation = conversation;
+        isReadOnlyMode = true;
+
+        ui.clearMessages();
+        ui.renderConversation(conversation);
+        ui.setReadOnlyMode(true);
+        ui.toggleHistoryPanel(false);
+    });
+}
+
+/**
+ * 刪除對話
+ */
+function handleDeleteConversation(id) {
+    const isCurrentConversation = currentConversation && currentConversation.id === id;
+
+    if (isCurrentConversation && isInCall()) {
+        // 通話中刪除當前對話
+        confirmIfInCall(() => {
+            handleHangup();
+            conversationStorage.delete(id);
+            _startNewChat();
+            refreshHistoryList();
+        });
+    } else {
+        // 唯讀模式刪除當前檢視 或 刪除其他
+        conversationStorage.delete(id);
+
+        if (isCurrentConversation) {
+            _startNewChat();
+        }
+
+        refreshHistoryList();
+    }
+}
+
+/**
+ * 清除全部歷史
+ */
+function handleClearHistory() {
+    // 通話中再次檢查
+    if (isInCall()) {
+        ui.showToast('通話中無法清除歷史', 'error');
+        return;
+    }
+
+    if (confirm('確定要清除所有對話歷史嗎？')) {
+        conversationStorage.clear();
+        refreshHistoryList();
+
+        // 如果正在檢視歷史，回到新對話狀態
+        if (isReadOnlyMode) {
+            _startNewChat();
+        }
+    }
+}
+
+/**
+ * 重新整理歷史列表
+ */
+function refreshHistoryList() {
+    const conversations = conversationStorage.getAll();
+    ui.renderHistoryList(conversations, { isInCall: isInCall() });
+}
+
+/**
+ * 設定頁面關閉保護
+ */
+function setupPageCloseProtection() {
+    window.addEventListener('beforeunload', () => {
+        conversationStorage.flush();
+    });
+
+    window.addEventListener('pagehide', () => {
+        conversationStorage.flush();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            conversationStorage.flush();
+        }
+    });
 }

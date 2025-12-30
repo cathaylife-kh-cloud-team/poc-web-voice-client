@@ -20,7 +20,16 @@ class UIManager {
             callTimer: document.getElementById('call-timer'),
             callBtn: document.getElementById('call-btn'),
             hangupBtn: document.getElementById('hangup-btn'),
-            userInfo: document.getElementById('user-info')
+            userInfo: document.getElementById('user-info'),
+            // History panel elements
+            newChatBtn: document.getElementById('new-chat-btn'),
+            historyBtn: document.getElementById('history-btn'),
+            historyPanel: document.getElementById('history-panel'),
+            historyOverlay: document.getElementById('history-overlay'),
+            historyList: document.getElementById('history-list'),
+            historyCloseBtn: document.getElementById('history-close-btn'),
+            clearHistoryBtn: document.getElementById('clear-history-btn'),
+            readOnlyBanner: document.getElementById('read-only-banner')
         };
 
         // 訊息緩存 (用於更新佔位訊息)
@@ -255,6 +264,147 @@ class UIManager {
 
         this.elements.messages?.appendChild(card);
         this.scrollToBottom();
+    }
+
+    // ============================================
+    // History Panel Methods
+    // ============================================
+
+    /**
+     * Toggle history panel visibility
+     * @param {boolean} show 
+     */
+    toggleHistoryPanel(show) {
+        if (this.elements.historyPanel) {
+            this.elements.historyPanel.classList.toggle('hidden', !show);
+        }
+        if (this.elements.historyOverlay) {
+            this.elements.historyOverlay.classList.toggle('hidden', !show);
+        }
+    }
+
+    /**
+     * Render history list
+     * @param {Array} conversations 
+     * @param {Object} options - { isInCall: boolean }
+     */
+    renderHistoryList(conversations, options = {}) {
+        if (!this.elements.historyList) return;
+
+        if (!conversations || conversations.length === 0) {
+            this.showEmptyHistoryState();
+            // 仍需更新清除按鈕狀態
+            if (this.elements.clearHistoryBtn) {
+                this.elements.clearHistoryBtn.disabled = options.isInCall || false;
+            }
+            return;
+        }
+
+        this.elements.historyList.innerHTML = conversations.map(conv => `
+            <div class="history-item" data-id="${conv.id}">
+                <div class="history-item-content">
+                    <div class="history-item-title">${this._escapeHtml(conv.title || '無標題')}</div>
+                    <div class="history-item-time">${this._formatDateTime(conv.updatedAt)}</div>
+                </div>
+                <button class="history-item-delete" data-id="${conv.id}" title="刪除">🗑️</button>
+            </div>
+        `).join('');
+
+        // Disable clear button if in call
+        if (this.elements.clearHistoryBtn) {
+            this.elements.clearHistoryBtn.disabled = options.isInCall || false;
+        }
+    }
+
+    /**
+     * Show empty history state
+     */
+    showEmptyHistoryState() {
+        if (this.elements.historyList) {
+            this.elements.historyList.innerHTML = `
+                <div class="history-empty">
+                    <p>📭 尚無對話歷史</p>
+                    <p>開始通話後會自動記錄</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Set read-only mode
+     * @param {boolean} isReadOnly 
+     */
+    setReadOnlyMode(isReadOnly) {
+        if (isReadOnly) {
+            // 唯讀模式：隱藏所有通話按鈕
+            if (this.elements.callBtn) {
+                this.elements.callBtn.classList.add('hidden');
+            }
+            if (this.elements.hangupBtn) {
+                this.elements.hangupBtn.classList.add('hidden');
+            }
+        }
+        // 非唯讀模式：不在此處處理按鈕狀態，由 main.js 的 updateCallButtons 控制
+
+        // Show/hide read-only banner
+        if (this.elements.readOnlyBanner) {
+            this.elements.readOnlyBanner.classList.toggle('hidden', !isReadOnly);
+        }
+    }
+
+    /**
+     * Render a single message based on its type
+     * @param {Object} msg 
+     */
+    renderMessage(msg) {
+        if (msg.role === 'user') {
+            this.addMessage(msg.text, true);
+        } else if (msg.role === 'ai') {
+            this.addMessage(msg.text, false);
+        } else if (msg.role === 'card') {
+            this.showRepairConfirmCard(msg.data);
+        } else {
+            // Fallback for unknown types
+            console.warn('Unknown message type:', msg);
+            this.addMessage(`[未知訊息] ${JSON.stringify(msg)}`, false);
+        }
+    }
+
+    /**
+     * Render entire conversation (caller should call clearMessages first)
+     * @param {Object} conversation 
+     */
+    renderConversation(conversation) {
+        if (!conversation || !conversation.messages) return;
+
+        conversation.messages.forEach(msg => {
+            this.renderMessage(msg);
+        });
+    }
+
+    /**
+     * Format timestamp to readable date/time
+     * @param {number} timestamp 
+     * @returns {string}
+     */
+    _formatDateTime(timestamp) {
+        const date = new Date(timestamp);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${month}/${day} ${hours}:${minutes}`;
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text 
+     * @returns {string}
+     */
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

@@ -50,11 +50,26 @@
                     <span class="logo">🎧</span>
                     <span class="title">智能客服</span>
                 </div>
+                <div class="header-center">
+                    <button id="new-chat-btn" class="btn btn-icon-text" title="開新對話">
+                        <span>➕</span>
+                        <span>新對話</span>
+                    </button>
+                    <button id="history-btn" class="btn btn-icon-text" title="歷史記錄">
+                        <span>📜</span>
+                        <span>歷史</span>
+                    </button>
+                </div>
                 <div class="header-right">
                     <span id="user-info" class="user-info"></span>
                     <button id="logout-btn" class="btn btn-text">登出</button>
                 </div>
             </header>
+
+            <!-- 唯讀模式標誌 -->
+            <div id="read-only-banner" class="read-only-banner hidden">
+                🔒 僅供檢視，點擊「新對話」開始通話
+            </div>
 
             <!-- 狀態列 -->
             <div id="status-bar" class="status-bar status-idle">
@@ -85,9 +100,27 @@
 
         <!-- WebRTC Audio Element -->
         <audio id="remote-audio" autoplay playsinline hidden></audio>
+
+        <!-- 歷史面板 Overlay -->
+        <div id="history-overlay" class="overlay hidden"></div>
+
+        <!-- 歷史面板 -->
+        <div id="history-panel" class="history-panel hidden">
+            <div class="history-panel-header">
+                <h3>📜 對話歷史</h3>
+                <button id="history-close-btn" class="btn btn-text">✕</button>
+            </div>
+            <div id="history-list" class="history-list">
+                <!-- 動態填充 -->
+            </div>
+            <div class="history-panel-footer">
+                <button id="clear-history-btn" class="btn btn-danger">🗑️ 清除全部</button>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript modules -->
+    <script src="js/storage.js"></script>
     <script src="js/api.js"></script>
     <script src="js/webrtc.js"></script>
     <script src="js/events.js"></script>
