@@ -628,10 +628,12 @@ function refreshHistoryList() {
  */
 function setupPageCloseProtection() {
     window.addEventListener('beforeunload', () => {
+        webrtcManager?.disconnect();
         conversationStorage.flush();
     });
 
     window.addEventListener('pagehide', () => {
+        webrtcManager?.disconnect();
         conversationStorage.flush();
     });
 
