@@ -88,6 +88,9 @@ class EventHandler {
                 if (event.item_id) {
                     console.log('🎙️ [SPEECH_STARTED]', event.item_id);
 
+                    // ★ Audio Ducking: 停止等候音樂
+                    this.onStateChange('listening');
+
                     // 建立佔位訊息
                     this.onUserTranscript({
                         type: 'placeholder',
@@ -197,7 +200,7 @@ class EventHandler {
 
         console.log('🔧 [FUNCTION_CALL]', name, args);
 
-        if (name === 'repair_ticket' || name === 'submit_repair_ticket') {
+        if (name === 'repair_ticket') {
             // 報修單資料
             this.onRepairForm({
                 type: 'update',

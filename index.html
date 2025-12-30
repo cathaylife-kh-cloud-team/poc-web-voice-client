@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能客服語音助理</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ============================================ -->
+        <!-- 登入視圖 -->
+        <!-- ============================================ -->
+        <div id="login-view" class="view">
+            <div class="login-container">
+                <div class="login-header">
+                    <h1>🎧 智能客服語音助理</h1>
+                    <p>設備報修即時協助系統</p>
+                </div>
+                
+                <form id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label for="username">員工編號</label>
+                        <input type="text" id="username" name="username" 
+                               placeholder="請輸入員工編號" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">密碼</label>
+                        <input type="password" id="password" name="password" 
+                               placeholder="請輸入密碼" required>
+                    </div>
+                    
+                    <div id="login-error" class="error-message hidden"></div>
+                    
+                    <button type="submit" id="login-btn" class="btn btn-primary btn-block">
+                        登入
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- ============================================ -->
+        <!-- 通話視圖 -->
+        <!-- ============================================ -->
+        <div id="chat-view" class="view hidden">
+            <!-- 頂部導航列 -->
+            <header class="header">
+                <div class="header-left">
+                    <span class="logo">🎧</span>
+                    <span class="title">智能客服</span>
+                </div>
+                <div class="header-right">
+                    <span id="user-info" class="user-info"></span>
+                    <button id="logout-btn" class="btn btn-text">登出</button>
+                </div>
+            </header>
+            
+            <!-- 狀態列 -->
+            <div id="status-bar" class="status-bar status-idle">
+                <span id="status-text">待機中</span>
+                <span id="call-timer" class="call-timer">00:00</span>
+            </div>
+            
+            <!-- 訊息區域 -->
+            <div id="messages" class="messages">
+                <div class="welcome-message">
+                    <p>👋 歡迎使用智能客服語音助理</p>
+                    <p>點擊下方「開始通話」按鈕，即可開始語音對話</p>
+                </div>
+            </div>
+            
+            <!-- 控制區域 -->
+            <div id="controls" class="controls">
+                <button id="call-btn" class="btn btn-call">
+                    <span class="btn-icon">📞</span>
+                    <span>開始通話</span>
+                </button>
+                <button id="hangup-btn" class="btn btn-hangup hidden">
+                    <span class="btn-icon">📵</span>
+                    <span>結束通話</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript modules -->
+    <script src="js/api.js"></script>
+    <script src="js/webrtc.js"></script>
+    <script src="js/events.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

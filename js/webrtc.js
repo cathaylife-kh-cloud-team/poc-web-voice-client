@@ -13,6 +13,7 @@ class WebRTCManager {
         this.dataChannel = null;
         this.localStream = null;
         this.remoteAudioTrack = null;
+        this.remoteAudio = null;  // <audio> 元素引用
 
         // API 端點設定
         this.apiBaseUrl = options.apiBaseUrl || 'http://localhost:8080';
@@ -65,9 +66,11 @@ class WebRTCManager {
                 if (event.track.kind === 'audio') {
                     this.remoteAudioTrack = event.track;
                     // 建立 Audio 元素播放遠端音訊
-                    const audio = new Audio();
-                    audio.srcObject = new MediaStream([event.track]);
-                    audio.play().catch(e => this.log('Audio play failed:', e));
+                    this.remoteAudio = new Audio();
+                    this.remoteAudio.playsInline = true;
+                    this.remoteAudio.autoplay = true;
+                    this.remoteAudio.srcObject = new MediaStream([event.track]);
+                    this.remoteAudio.play().catch(e => this.log('Audio play failed:', e));
                 }
             };
 
@@ -154,6 +157,14 @@ class WebRTCManager {
             this.localStream = null;
         }
 
+        // 清理遠端音訊
+        if (this.remoteAudio) {
+            this.remoteAudio.pause();
+            this.remoteAudio.srcObject = null;
+            this.remoteAudio = null;
+        }
+        this.remoteAudioTrack = null;
+
         if (this.peerConnection) {
             this.peerConnection.close();
             this.peerConnection = null;
@@ -205,8 +216,8 @@ class WebRTCManager {
      * @param {boolean} enabled - true 為啟用，false 為靜音
      */
     setRemoteAudioEnabled(enabled) {
-        if (this.remoteAudioTrack) {
-            this.remoteAudioTrack.enabled = enabled;
+        if (this.remoteAudio) {
+            this.remoteAudio.muted = !enabled;
         }
     }
 }
