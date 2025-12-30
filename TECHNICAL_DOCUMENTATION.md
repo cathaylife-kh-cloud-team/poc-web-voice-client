@@ -50,6 +50,7 @@ sequenceDiagram
 | `webrtc.js` | WebRTC 連線與音訊串流管理 | `WebRTCManager` |
 | `events.js` | DataChannel 事件處理邏輯 | `EventHandler` |
 | `ui.js` | DOM 操作與 UI 更新 | `UIManager` |
+| `storage.js` | 對話歷史儲存與管理 | `ConversationStorage` |
 | `api.js` | REST API 呼叫 (Auth/Refresh) | `ApiService` |
 
 ## 3. 功能特性
@@ -88,6 +89,25 @@ sequenceDiagram
 - **DISCONNECTED**: 連線中斷。
 
 *註：`events.js` 可能會發出邏輯上的 `processing` 狀態（例如 Function Call 期間），這在 `main.js` 中會被映射並顯示為 `WAITING` 狀態。*
+
+### 3.5 對話歷史管理 (Conversation History)
+
+系統具備本地對話歷史紀錄功能，支援離線檢視與管理。
+
+- **儲存機制**: 
+    - 使用瀏覽器 `localStorage` 進行持久化。
+    - 採用 `Debounce` (500ms) 機制優化寫入效能，避免頻繁 IO。
+- **容量限制**:
+    - **最大對話數**: 50 筆 (採用 LRU 演算法，自動淘汰最舊紀錄)。
+    - **單一對話訊息上限**: 200 則。
+    - **訊息長度上限**: 500 字元 (超長文本自動截斷)。
+- **唯讀模式 (Read-Only)**: 
+    - 點擊歷史紀錄載入對話後，系統進入唯讀狀態。
+    - 隱藏通話控制按鈕 (Start/Hangup)，僅顯示 "New Chat" 與 "History" 操作。
+    - 明確的 UI 橫幅提示當前狀態。
+- **資料安全性**:
+    - 登出 (Logout) 時自動清除所有本地歷史紀錄，確保公用設備隱私。
+    - 頁面關閉/重新整理時觸發 `flush` 強制寫入，防止資料遺失。
 
 ## 4. API 整合規格
 
