@@ -13,7 +13,14 @@ class WebRTCManager {
         this.dataChannel = null;
         this.localStream = null;
         this.remoteAudioTrack = null;
-        this.remoteAudio = null;  // <audio> 元素引用
+        this.remoteAudio = document.getElementById('remote-audio');  // 取得 DOM 中的 audio 元素
+
+        // 若找不到元素（例如舊版 HTML），退回到 new Audio()，但這在 Safari 可能有問題
+        if (!this.remoteAudio) {
+            this.remoteAudio = new Audio();
+            this.remoteAudio.playsInline = true;
+            this.remoteAudio.autoplay = true;
+        }
 
         // API 端點設定
         this.apiBaseUrl = options.apiBaseUrl || 'http://localhost:8080';
@@ -25,6 +32,19 @@ class WebRTCManager {
     log(...args) {
         if (this.debug) {
             console.log('[WebRTC]', ...args);
+        }
+    }
+
+    /**
+     * 準備音訊播放 (必須在使用者點擊事件中呼叫)
+     * 解鎖 Safari/Mobile 的 AudioContext
+     */
+    prepareAudio() {
+        if (this.remoteAudio) {
+            this.remoteAudio.play().catch(e => {
+                // 預期會失敗（因為沒有 src），但這足以解鎖 autoplay
+                this.log('Audio warm-up (expected):', e);
+            });
         }
     }
 
@@ -65,12 +85,11 @@ class WebRTCManager {
                 this.log('Received remote track:', event.track.kind);
                 if (event.track.kind === 'audio') {
                     this.remoteAudioTrack = event.track;
-                    // 建立 Audio 元素播放遠端音訊
-                    this.remoteAudio = new Audio();
-                    this.remoteAudio.playsInline = true;
-                    this.remoteAudio.autoplay = true;
-                    this.remoteAudio.srcObject = new MediaStream([event.track]);
-                    this.remoteAudio.play().catch(e => this.log('Audio play failed:', e));
+                    // 使用已準備好的 Audio 元素播放
+                    if (this.remoteAudio) {
+                        this.remoteAudio.srcObject = new MediaStream([event.track]);
+                        this.remoteAudio.play().catch(e => this.log('Audio play failed:', e));
+                    }
                 }
             };
 

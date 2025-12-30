@@ -175,6 +175,9 @@ async function handleStartCall() {
             onError: handleWebRTCError
         });
 
+        // Safari Fix: 在使用者點擊事件中預先啟動 Audio Context
+        webrtcManager.prepareAudio();
+
         // 取得 token (雖然目前 permitAll，但保持架構一致)
         const token = apiService.getToken() || '';
 

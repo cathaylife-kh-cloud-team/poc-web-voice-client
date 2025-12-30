@@ -19,6 +19,7 @@ sequenceDiagram
 
     User->>WebClient: 點擊「開始通話」
     WebClient->>User: 請求麥克風權限
+    WebClient->>WebClient: prepareAudio() (解鎖 AudioContext)
     User-->>WebClient: 允許權限
     WebClient->>WebClient: 建立 WebRTC Offer (SDP)
     WebClient->>APIServer: POST /realtime/v1/calls (SDP)
@@ -32,9 +33,9 @@ sequenceDiagram
         User->>WebClient: 語音輸入
         WebClient->>OpenAI: RTP Audio Stream
         OpenAI->>WebClient: RTP Audio Stream
-        WebClient->>User: 播放音訊
+        WebClient->>User: 播放音訊 (hidden audio element)
     and Data Control
-        OpenAI->>WebClient: DataChannel Events (Transcription/FunctionCall)
+        OpenAI->>WebClient: DataChannel Events
         WebClient->>WebClient: 更新 UI / 執行邏輯
     end
 ```
@@ -54,24 +55,26 @@ sequenceDiagram
 ## 3. 功能特性
 
 ### 3.1 WebRTC 音訊串流
-- **自動播放策略**: 透過使用者點擊「開始通話」觸發 Context，並利用 `playsInline` 與隱藏 `<audio>` 元素確保在 iOS Safari 與各種瀏覽器上的相容性。
+- **自動播放策略**: 
+    - HTML 中包含一個隱藏的 `<audio id="remote-audio" autoplay playsinline hidden>` 元素。
+    - 在使用者點擊「開始通話」時，呼叫 `prepareAudio()` 預先觸發 `.play()` 方法以解鎖 AudioContext (針對 Safari/iOS)。
+    - 當 `ontrack` 事件觸發時，將 Stream 指派給該 DOM 元素。
 - **回音消除 (AEC)**: `getUserMedia` 配置強制開啟 `echoCancellation` 與 `noiseSuppression`。
 
 ### 3.2 雙向 DataChannel 通訊
 - 使用 `oai-events` 作為 DataChannel label。
 - 支援完整的 OpenAI Realtime API 事件映射，包括：
-    - `response.audio_transcript.delta`: 只顯示文字不播放（因為音訊走 WebRTC）。
+    - `response.output_audio_transcript.delta`: 只顯示文字不播放（因為音訊走 WebRTC）。
     - `input_audio_buffer.speech_started`: 偵測使用者說話 (VAD)。
     - `response.function_call_arguments.done`: 接收後端 function call 結果。
 
 ### 3.3 Audio Ducking & Barge-in (打斷機制)
-為了提供自然的對話體驗，實作了 **Barge-in** 機制：
-1. 當收到 `input_audio_buffer.speech_started` 事件（使用者開始說話）：
-   - 觸發 `barge_in` 狀態。
-   - `WebRTCManager` 立即將遠端音訊 (`remoteAudio`) 設為靜音。
-   - UI 顯示 `...` 佔位符。
-2. 當 AI 回應開始或狀態轉回 `listening`：
-   - 恢復遠端音訊音量。
+為了提供自然的對話體驗，實作了 **Barge-in** 機制，並依賴 Server-side VAD 處理回音：
+1. **Server-side Truncation**: OpenAI 伺服器端偵測到使用者說話時，會自動停止傳送音訊，因此**前端不執行本地靜音 (Mute)**，避免誤判導致聲音切斷。
+2. **UI 回饋**: 當收到 `input_audio_buffer.speech_started` 時：
+   - App 狀態切換為 `listening`。
+   - UI 停止播放等候音樂（若有）。
+   - 對話框顯示 `...` 作為使用者正在說話的視覺回饋。
 
 ### 3.4 狀態機管理
 
@@ -81,9 +84,10 @@ sequenceDiagram
 - **CONNECTING**: 正在建立 WebRTC 連線。
 - **LISTENING**: 連線建立，等待使用者說話。
 - **RESPONDING**: AI 正在生成回應或播放語音。
-- **PROCESSING**: AI 正在執行 Tool/Function (MCP Call)。
-- **WAITING**: 等待外部系統回應 (伴隨等候音樂)。
+- **WAITING**: 等待外部系統回應 (MCP Tool Call 執行中)。
 - **DISCONNECTED**: 連線中斷。
+
+*註：`events.js` 可能會發出邏輯上的 `processing` 狀態（例如 Function Call 期間），這在 `main.js` 中會被映射並顯示為 `WAITING` 狀態。*
 
 ## 4. API 整合規格
 
@@ -105,8 +109,6 @@ sequenceDiagram
 | `repair_ticket` | 建立報修單 | 彈出報修確認卡片 (`showRepairConfirmCard`) |
 | `query_user_equipments` | 查詢設備 | 顯示設備清單供選擇 (`showDeviceSelection`) |
 
-*註：舊版別名 `submit_repair_ticket` 已移除，統一使用 `repair_ticket`。*
-
 ## 5. 配置與模式
 
 `js/main.js` 中的 `CONFIG` 物件控制運行模式：
@@ -126,9 +128,9 @@ const CONFIG = {
    - `getUserMedia` 僅在 `localhost` 或 `https` 環境下工作。
    - 建議使用 Chrome 或 Safari 進行測試。
 2. **Audio Context**:
-   - 必須由使用者手勢（點擊按鈕）觸發 `Audio` 播放，否則會被瀏覽器阻擋。
+   - 必須由使用者手勢（點擊按鈕）觸發 `prepareAudio()`，否則 Autoplay 會被部分瀏覽器（如 Safari）阻擋。
 3. **Ghost Audio**:
-   - 確保在 `disconnect()` 時將 `<audio>` 元素的 `srcObject` 設為 `null` 並移除引用，防止斷線後仍有殘留聲音。
+   - 確保在 `disconnect()` 時將 `<audio>` 元素的 `srcObject` 設為 `null` 並 `pause()`，防止斷線後仍有殘留聲音。
 
 ## 7. 部署說明
 
