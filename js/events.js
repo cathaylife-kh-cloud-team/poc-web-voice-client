@@ -10,11 +10,14 @@ class EventHandler {
         this.onStateChange = options.onStateChange || (() => { });
         this.onRepairForm = options.onRepairForm || (() => { });
         this.onDeviceList = options.onDeviceList || (() => { });
+        this.onRepairComplete = options.onRepairComplete || (() => { });  // 新增: MCP 建單完成
         this.onMCPCall = options.onMCPCall || (() => { });
+        this.onMusicControl = options.onMusicControl || { play: () => { }, stop: () => { } };  // 新增: 音樂控制
 
         // 內部狀態
         this.currentAIMessage = '';
         this.aiIsTyping = false;
+        this.mcpInProgress = false;  // 新增: MCP 進行中 flag
 
         // STT 競態條件處理
         this.pendingUserItemIds = new Map(); // itemId -> timeout handle
@@ -89,6 +92,7 @@ class EventHandler {
                     console.log('🎙️ [SPEECH_STARTED]', event.item_id);
 
                     // ★ Audio Ducking: 停止等候音樂
+                    this.onMusicControl.stop();
                     this.onStateChange('listening');
 
                     // 建立佔位訊息
@@ -143,17 +147,23 @@ class EventHandler {
             // ============================================
             case 'response.mcp_call.in_progress':
                 console.log('🔔 [MCP] In progress');
+                this.mcpInProgress = true;  // 啟用 flag
                 this.onMCPCall({ type: 'start' });
                 this.onStateChange('processing');
                 break;
 
             case 'response.mcp_call.completed':
                 console.log('✅ [MCP] Completed');
+                this.mcpInProgress = false;
+                this.onMusicControl.stop();
                 this.onMCPCall({ type: 'complete' });
                 break;
 
             case 'output_audio_buffer.stopped':
-                // 音訊緩衝停止 - 可能需要播放等候音樂
+                // 音訊緩衝停止 - MCP 進行中才播放等候音樂
+                if (this.mcpInProgress) {
+                    this.onMusicControl.play();
+                }
                 this.onStateChange('waiting');
                 break;
 
@@ -165,7 +175,8 @@ class EventHandler {
                 break;
 
             case 'response.done':
-                // 回應完成，檢查是否有 function call
+                // 回應完成，停止音樂並檢查是否有 function call
+                this.onMusicControl.stop();
                 if (event.response && event.response.output) {
                     event.response.output.forEach(item => {
                         if (item.type === 'function_call') {
@@ -173,6 +184,13 @@ class EventHandler {
                         }
                     });
                 }
+                break;
+
+            // ============================================
+            // MCP Tool 結果 (conversation.item.done)
+            // ============================================
+            case 'conversation.item.done':
+                this.handleMCPResult(event);
                 break;
 
             default:
@@ -230,6 +248,54 @@ class EventHandler {
                 });
             });
             this.pendingAIMessages = [];
+        }
+    }
+
+    /**
+     * 處理 MCP Tool 結果 (conversation.item.done)
+     */
+    handleMCPResult(event) {
+        const item = event.item;
+        if (!item || item.type !== 'mcp_call') return;
+
+        let output = {};
+        try {
+            output = typeof item.output === 'string'
+                ? JSON.parse(item.output)
+                : (item.output || {});
+        } catch (e) {
+            console.warn('Failed to parse MCP output:', e);
+            return;
+        }
+
+        const name = item.name;
+        console.log('🛠️ [MCP_RESULT]', name, output);
+
+        if (name === 'query_user_equipments') {
+            // 設備清單 - 做 mapping
+            const devices = (output.items || []).map((d, i) => ({
+                index: i,
+                id: d.ASST_SER_NO,
+                name: d.EQMT_KIND_NM,
+                model: d.MCHN_MDL,
+                serial: d.MCHN_SRLNO,
+                status: d.EQMT_STATUS_NM,
+                warranty: d.HW_QNTE_ENDDT,
+                vendor: d.MATN_DIV_NM,
+                unit: d.MATN_DIV,
+                custodian: d.CTDN_NM
+            }));
+            this.onDeviceList({ type: 'list', devices });
+        }
+        else if (name === 'create_equipment_repair_form') {
+            // 建單完成 - 檢查成功/失敗
+            const isSuccess = output.orderNo && !output.apiStatus?.includes('ERROR');
+            this.onRepairComplete({
+                success: isSuccess,
+                orderNo: output.orderNo,
+                status: output.apiStatus,
+                message: output.apiMessage
+            });
         }
     }
 }

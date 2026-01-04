@@ -247,7 +247,13 @@ async function handleStartCall() {
             onUserTranscript: handleUserTranscript,
             onStateChange: handleStateChange,
             onRepairForm: handleRepairForm,
-            onMCPCall: handleMCPCall
+            onDeviceList: handleDeviceList,
+            onRepairComplete: handleRepairComplete,
+            onMCPCall: handleMCPCall,
+            onMusicControl: {
+                play: () => playHoldMusic(),
+                stop: () => stopHoldMusic()
+            }
         });
 
         // 初始化 WebRTC 管理器
@@ -319,6 +325,8 @@ function handleWebRTCState(state) {
         case 'disconnected':
         case 'failed':
         case 'closed':
+            stopHoldMusic();
+            ui.setWaveformState('hidden');
             setState(AppState.DISCONNECTED);
             stopCallTimer();
             ui.showToast('連線已中斷', 'error');
@@ -406,7 +414,10 @@ function handleStateChange(state) {
 
 function handleRepairForm(data) {
     if (data.type === 'update') {
-        ui.showRepairConfirmCard(data.data);
+        ui.showRepairConfirmCard(data.data, () => {
+            // 確認送出報修
+            webrtcManager.sendTextToAI('確認送出報修');
+        });
 
         // 儲存卡片到對話 (upsert by cardId)
         if (currentConversation) {
@@ -434,11 +445,53 @@ function handleRepairForm(data) {
     }
 }
 
+function handleDeviceList(data) {
+    if (data.type === 'list') {
+        ui.showDeviceListCard(data.devices, (device) => {
+            const displayIndex = device.index + 1;
+            webrtcManager.sendTextToAI(
+                `我選擇第 ${displayIndex} 台，財產編號 ${device.id}`
+            );
+        });
+    }
+}
+
+function handleRepairComplete(data) {
+    stopHoldMusic();
+    if (data.success) {
+        ui.showRepairSuccess(data.orderNo, data.message);
+    } else {
+        ui.showToast(data.message || '建單失敗', 'error');
+    }
+}
+
 function handleMCPCall(data) {
     if (data.type === 'start') {
         setState(AppState.WAITING);
     } else if (data.type === 'complete') {
         // 等待 AI 繼續回應
+    }
+}
+
+// ============================================
+// 等候音樂控制
+// ============================================
+let holdMusicElement = null;
+
+function playHoldMusic() {
+    if (!holdMusicElement) {
+        holdMusicElement = document.getElementById('hold-music');
+    }
+    if (holdMusicElement) {
+        holdMusicElement.currentTime = 0;
+        holdMusicElement.play().catch(e => console.warn('Hold music play failed:', e));
+    }
+}
+
+function stopHoldMusic() {
+    if (holdMusicElement) {
+        holdMusicElement.pause();
+        holdMusicElement.currentTime = 0;
     }
 }
 

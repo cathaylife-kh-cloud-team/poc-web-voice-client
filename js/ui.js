@@ -29,7 +29,10 @@ class UIManager {
             historyList: document.getElementById('history-list'),
             historyCloseBtn: document.getElementById('history-close-btn'),
             clearHistoryBtn: document.getElementById('clear-history-btn'),
-            readOnlyBanner: document.getElementById('read-only-banner')
+            readOnlyBanner: document.getElementById('read-only-banner'),
+            // UI Enhancements
+            waveform: document.getElementById('waveform'),
+            holdMusic: document.getElementById('hold-music')
         };
 
         // 訊息緩存 (用於更新佔位訊息)
@@ -243,27 +246,133 @@ class UIManager {
     /**
      * 顯示報修確認卡片
      */
-    showRepairConfirmCard(data) {
+    /**
+     * 顯示報修確認卡片
+     */
+    showRepairConfirmCard(data, onConfirm = null) {
         const card = document.createElement('div');
         card.className = 'message ai-message repair-card';
         card.innerHTML = `
             <div class="repair-card-title">📋 報修確認</div>
             <div class="repair-card-field">
                 <span class="label">設備：</span>
-                <span class="value">${data.EQMT_NM || data.device || '未指定'}</span>
+                <span class="value">${data.EQMT_KIND_NM || data.device_type || '未指定'}</span>
             </div>
             <div class="repair-card-field">
                 <span class="label">問題：</span>
-                <span class="value">${data.EQMT_FAIL_CNTNT || data.problem || '未描述'}</span>
+                <span class="value">${data.EQMT_PRB_DESC || data.problem_desc || '未描述'}</span>
             </div>
             <div class="repair-card-field">
                 <span class="label">申請人：</span>
-                <span class="value">${data.EQMT_APLEMP_NM || '未指定'}</span>
+                <span class="value">${data.EQMT_APLEMP_NM || data.reporter_name || '未指定'}</span>
+            </div>
+            <div class="repair-card-actions">
+                <button class="action-btn confirm-btn">確認送出報修</button>
             </div>
         `;
 
+        if (onConfirm) {
+            const btn = card.querySelector('.confirm-btn');
+            if (btn) {
+                btn.onclick = () => {
+                    btn.disabled = true;
+                    btn.textContent = '已送出';
+                    onConfirm();
+                };
+            }
+        } else {
+            // 唯讀模式 (歷史紀錄回放)
+            const btn = card.querySelector('.confirm-btn');
+            if (btn) btn.remove();
+        }
+
         this.elements.messages?.appendChild(card);
         this.scrollToBottom();
+    }
+
+    /**
+     * 顯示設備清單卡片
+     * @param {Array} devices 
+     * @param {Function} onSelect 
+     */
+    showDeviceListCard(devices, onSelect) {
+        const card = document.createElement('div');
+        card.className = 'message ai-message device-list-card';
+
+        const listHtml = devices.map(d => `
+            <div class="device-item" data-id="${d.id}" data-index="${d.index}">
+                <div class="device-header">
+                    <span class="device-name">${d.name}</span>
+                    <span class="device-status ${d.status === '正常' ? 'status-ok' : 'status-warn'}">${d.status}</span>
+                </div>
+                <div class="device-details">
+                    <div>財產編號：${d.id}</div>
+                    <div>機型：${d.model}</div>
+                    <div>機號：${d.serial}</div>
+                    <div>廠商：${d.vendor || '-'}</div>
+                    <div>單位：${d.unit || '-'}</div>
+                    <div class="device-custodian">保管人：${d.custodian || '-'}</div>
+                    <div class="device-warranty">保固：${d.warranty || '-'}</div>
+                </div>
+                <button class="device-select-btn">選擇此設備</button>
+            </div>
+        `).join('');
+
+        card.innerHTML = `
+            <div class="device-list-title">📱 請選擇報修設備</div>
+            <div class="device-list-content">${listHtml}</div>
+        `;
+
+        // 綁定事件
+        if (onSelect) {
+            card.querySelectorAll('.device-select-btn').forEach((btn, i) => {
+                btn.onclick = () => {
+                    // 禁用所有按鈕
+                    card.querySelectorAll('button').forEach(b => b.disabled = true);
+                    btn.textContent = '已選擇';
+                    btn.classList.add('selected');
+                    onSelect(devices[i], i);
+                };
+            });
+        }
+
+        this.elements.messages?.appendChild(card);
+        this.scrollToBottom();
+    }
+
+    /**
+     * 顯示報修成功訊息
+     */
+    showRepairSuccess(orderNo, message) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message ai-message repair-success';
+        msgEl.innerHTML = `
+            <div class="success-icon">✅</div>
+            <div class="success-title">報修完成</div>
+            <div class="success-order">单号：${orderNo}</div>
+            <div class="success-message">${message}</div>
+        `;
+        this.elements.messages?.appendChild(msgEl);
+        this.scrollToBottom();
+    }
+
+    /**
+     * 設定波形動畫狀態
+     * @param {string} state - 'listening' | 'responding' | 'hidden'
+     */
+    setWaveformState(state) {
+        const el = this.elements.waveform;
+        if (!el) return;
+
+        el.classList.remove('waveform-listening', 'waveform-responding', 'hidden');
+
+        if (state === 'hidden') {
+            el.classList.add('hidden');
+        } else if (state === 'listening') {
+            el.classList.add('waveform-listening');
+        } else if (state === 'responding') {
+            el.classList.add('waveform-responding');
+        }
     }
 
     // ============================================

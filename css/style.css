@@ -526,6 +526,7 @@ body {
     background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
     border: 1px solid #86efac;
     padding: 16px;
+    width: 100%;
 }
 
 .repair-card-title {
@@ -551,9 +552,243 @@ body {
     font-weight: 500;
 }
 
+/* Repair Card Actions */
+.repair-card-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(134, 239, 172, 0.5);
+    text-align: right;
+}
+
+.action-btn {
+    background: #166534;
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.action-btn:hover:not(:disabled) {
+    background: #14532d;
+}
+
+.action-btn:disabled {
+    background: #86efac;
+    cursor: not-allowed;
+}
+
 /* ============================================
-   Controls
+   Device List Card
    ============================================ */
+.device-list-card {
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+    background: var(--card-bg);
+}
+
+.device-list-title {
+    padding: 12px 16px;
+    background: #f3f4f6;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.device-list-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.device-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s;
+}
+
+.device-item:last-child {
+    border-bottom: none;
+}
+
+.device-item:hover {
+    background: #f9fafb;
+}
+
+.device-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.device-name {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.device-status {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.status-ok {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-warn {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.device-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.device-custodian,
+.device-warranty {
+    grid-column: span 2;
+}
+
+.device-select-btn {
+    width: 100%;
+    padding: 6px;
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.device-select-btn:hover:not(:disabled) {
+    background: var(--primary-color);
+    color: white;
+}
+
+.device-select-btn:disabled {
+    border-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.device-select-btn.selected {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* ============================================
+   Repair Success
+   ============================================ */
+.repair-success {
+    background: #f0fdf4;
+    border: 1px solid #22c55e;
+    text-align: center;
+    padding: 24px;
+}
+
+.success-icon {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+}
+
+.success-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #15803d;
+    margin-bottom: 4px;
+}
+
+.success-order {
+    font-family: monospace;
+    font-size: 1rem;
+    color: #166534;
+    background: #dcfce7;
+    padding: 4px 12px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 8px 0;
+}
+
+.success-message {
+    font-size: 0.875rem;
+    color: #15803d;
+}
+
+/* ============================================
+   Waveform Animation
+   ============================================ */
+.waveform {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 16px;
+    margin-left: 12px;
+}
+
+.waveform span {
+    display: block;
+    width: 3px;
+    height: 100%;
+    background: #9ca3af;
+    border-radius: 3px;
+    animation: none;
+}
+
+.waveform-listening span {
+    background: #10b981;
+    animation: wave 1.2s ease-in-out infinite;
+}
+
+.waveform-responding span {
+    background: #3b82f6;
+    animation: wave 0.8s ease-in-out infinite;
+}
+
+.waveform span:nth-child(1) {
+    animation-delay: 0.0s;
+}
+
+.waveform span:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.waveform span:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.waveform span:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.waveform span:nth-child(5) {
+    animation-delay: 0.4s;
+}
+
+@keyframes wave {
+
+    0%,
+    100% {
+        height: 20%;
+    }
+
+    50% {
+        height: 100%;
+    }
+}
+
 .controls {
     padding: 20px;
     display: flex;

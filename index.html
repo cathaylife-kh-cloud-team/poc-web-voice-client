@@ -74,6 +74,9 @@
             <!-- 狀態列 -->
             <div id="status-bar" class="status-bar status-idle">
                 <span id="status-text">待機中</span>
+                <div id="waveform" class="waveform hidden">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
                 <span id="call-timer" class="call-timer">00:00</span>
             </div>
 
@@ -100,6 +103,11 @@
 
         <!-- WebRTC Audio Element -->
         <audio id="remote-audio" autoplay playsinline hidden></audio>
+
+        <!-- Wait Music Audio Element -->
+        <audio id="hold-music" loop hidden>
+            <source src="assets/hold_music.mp3" type="audio/mpeg">
+        </audio>
 
         <!-- 歷史面板 Overlay -->
         <div id="history-overlay" class="overlay hidden"></div>
