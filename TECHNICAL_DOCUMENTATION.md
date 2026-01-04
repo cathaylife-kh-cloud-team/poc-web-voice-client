@@ -56,10 +56,10 @@ sequenceDiagram
 ## 3. 功能特性
 
 ### 3.1 WebRTC 音訊串流
-- **自動播放策略**: 
-    - HTML 中包含一個隱藏的 `<audio id="remote-audio" autoplay playsinline hidden>` 元素。
-    - 在使用者點擊「開始通話」時，呼叫 `prepareAudio()` 預先觸發 `.play()` 方法以解鎖 AudioContext (針對 Safari/iOS)。
-    - 當 `ontrack` 事件觸發時，將 Stream 指派給該 DOM 元素。
+- **自動播放策略**:
+    - HTML 中包含隱藏的 `<audio id="remote-audio">` 與 `<audio id="hold-music">` 元素。
+    - 在使用者點擊「開始通話」時，呼叫 `prepareAudio()` 預先對 **所有音訊元件** (`remote-audio` 與 `hold-music`) 觸發 `.play()` + `.pause()` 流程，以解鎖 AudioContext 並確保後續自動播放功能在 Safari/iOS 上正常運作。
+    - 當 `ontrack` 事件觸發時，將 Stream 指派給 `remote-audio` DOM 元素。
 - **回音消除 (AEC)**: `getUserMedia` 配置強制開啟 `echoCancellation` 與 `noiseSuppression`。
 
 ### 3.2 雙向 DataChannel 通訊
