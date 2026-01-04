@@ -46,6 +46,17 @@ class WebRTCManager {
                 this.log('Audio warm-up (expected):', e);
             });
         }
+
+        // 預熱等候音樂 (for Safari/iOS)
+        const holdMusic = document.getElementById('hold-music');
+        if (holdMusic) {
+            holdMusic.play().then(() => {
+                holdMusic.pause();
+                holdMusic.currentTime = 0;
+            }).catch(e => {
+                this.log('Hold music warm-up (expected):', e);
+            });
+        }
     }
 
     /**
