@@ -2,6 +2,12 @@
 
 這是一個 Web 版的語音客戶端，取代 iOS App 進行設備報修的語音對話。
 
+## 線上版本
+
+**https://web-voice-client-155530028267.asia-east1.run.app**
+
+部署於 Google Cloud Run (asia-east1)，任何人皆可存取。
+
 ## 快速開始
 
 ### 1. 啟動後端服務
@@ -66,3 +72,15 @@ const CONFIG = {
 - Chrome 90+
 - Safari 15+
 - Edge 90+
+
+## 部署到 Cloud Run
+
+```bash
+gcloud run deploy web-voice-client \
+  --source . \
+  --region asia-east1 \
+  --platform managed \
+  --allow-unauthenticated
+```
+
+需要 `Dockerfile` 和 `nginx.conf`（已包含在專案中）。
