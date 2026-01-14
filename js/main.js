@@ -47,7 +47,19 @@ function setState(newState) {
 
     // 更新按鈕狀態
     const isConnected = [AppState.CONNECTED, AppState.LISTENING, AppState.RESPONDING, AppState.WAITING].includes(newState);
-    ui.updateCallButtons(isConnected);
+    const isConnecting = newState === AppState.CONNECTING;
+    ui.updateCallButtons(isConnected, isConnecting);
+
+    // 更新波形狀態
+    if (newState === AppState.LISTENING) {
+        ui.setWaveformState('listening');
+    } else if (newState === AppState.RESPONDING) {
+        ui.setWaveformState('responding');
+    } else if (isConnected) {
+        ui.setWaveformState('listening');
+    } else {
+        ui.setWaveformState('hidden');
+    }
 
     // 通話狀態變更時，更新歷史面板的清除按鈕狀態
     const nowInCall = isInCall();

@@ -74,9 +74,6 @@
             <!-- 狀態列 -->
             <div id="status-bar" class="status-bar status-idle">
                 <span id="status-text">待機中</span>
-                <div id="waveform" class="waveform hidden">
-                    <span></span><span></span><span></span><span></span><span></span>
-                </div>
                 <span id="call-timer" class="call-timer">00:00</span>
             </div>
 
@@ -85,6 +82,16 @@
                 <div class="welcome-message">
                     <p>👋 歡迎使用智能客服語音助理</p>
                     <p>點擊下方「開始通話」按鈕，即可開始語音對話</p>
+                </div>
+            </div>
+
+            <!-- 波形視覺化區域 -->
+            <div id="waveform-container" class="waveform-container hidden">
+                <div id="waveform" class="waveform">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
                 </div>
             </div>
 

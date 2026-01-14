@@ -93,13 +93,42 @@ class WebRTCManager {
 
             // 監聽遠端音訊軌
             this.peerConnection.ontrack = (event) => {
-                this.log('Received remote track:', event.track.kind);
+                console.log('[WebRTC] Received remote track:', event.track.kind, event.track);
                 if (event.track.kind === 'audio') {
                     this.remoteAudioTrack = event.track;
-                    // 使用已準備好的 Audio 元素播放
+                    
+                    event.track.onunmute = () => {
+                        console.log('[WebRTC] Track unmuted - audio data flowing');
+                        console.log('[WebRTC] Audio element state:', {
+                            srcObject: this.remoteAudio?.srcObject,
+                            paused: this.remoteAudio?.paused,
+                            volume: this.remoteAudio?.volume,
+                            muted: this.remoteAudio?.muted,
+                            readyState: this.remoteAudio?.readyState
+                        });
+                    };
+                    event.track.onmute = () => {
+                        console.log('[WebRTC] Track muted');
+                    };
+                    event.track.onended = () => {
+                        console.log('[WebRTC] Track ended');
+                    };
+                    
+                    console.log('[WebRTC] Remote audio element:', this.remoteAudio);
+                    console.log('[WebRTC] Track muted state:', event.track.muted);
                     if (this.remoteAudio) {
-                        this.remoteAudio.srcObject = new MediaStream([event.track]);
-                        this.remoteAudio.play().catch(e => this.log('Audio play failed:', e));
+                        const stream = new MediaStream([event.track]);
+                        this.remoteAudio.srcObject = stream;
+                        this.remoteAudio.volume = 1.0;
+                        this.remoteAudio.muted = false;
+                        console.log('[WebRTC] Set srcObject, stream tracks:', stream.getTracks());
+                        console.log('[WebRTC] Attempting play...');
+                        this.remoteAudio.play()
+                            .then(() => {
+                                console.log('[WebRTC] Audio playback started!');
+                                console.log('[WebRTC] After play - paused:', this.remoteAudio.paused, 'currentTime:', this.remoteAudio.currentTime);
+                            })
+                            .catch(e => console.error('[WebRTC] Audio play failed:', e));
                     }
                 }
             };

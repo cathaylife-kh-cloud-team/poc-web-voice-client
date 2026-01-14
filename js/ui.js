@@ -32,6 +32,7 @@ class UIManager {
             readOnlyBanner: document.getElementById('read-only-banner'),
             // UI Enhancements
             waveform: document.getElementById('waveform'),
+            waveformContainer: document.getElementById('waveform-container'),
             holdMusic: document.getElementById('hold-music')
         };
 
@@ -40,6 +41,9 @@ class UIManager {
 
         // 當前 AI 訊息元素
         this.currentAIMessageEl = null;
+
+        // 波形動畫控制
+        this.waveformInterval = null;
     }
 
     /**
@@ -128,10 +132,11 @@ class UIManager {
     /**
      * 更新通話按鈕狀態
      */
-    updateCallButtons(isConnected) {
+    updateCallButtons(isConnected, isConnecting = false) {
         if (this.elements.callBtn) {
-            this.elements.callBtn.disabled = isConnected;
+            this.elements.callBtn.disabled = isConnected || isConnecting;
             this.elements.callBtn.classList.toggle('hidden', isConnected);
+            this.elements.callBtn.classList.toggle('connecting', isConnecting);
         }
         if (this.elements.hangupBtn) {
             this.elements.hangupBtn.disabled = !isConnected;
@@ -202,6 +207,49 @@ class UIManager {
      */
     finalizeAIMessage() {
         this.currentAIMessageEl = null;
+    }
+
+    showUserTypingIndicator(itemId) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message user-message';
+        msgEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+        
+        if (itemId) {
+            msgEl.dataset.itemId = itemId;
+            this.messageElements.set(itemId, msgEl);
+        }
+        
+        this.elements.messages?.appendChild(msgEl);
+        this.scrollToBottom();
+        return msgEl;
+    }
+
+    showAITypingIndicator() {
+        const existing = document.querySelector('.ai-typing-indicator');
+        if (existing) return existing;
+        
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message ai-message ai-typing-indicator';
+        msgEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+        
+        this.elements.messages?.appendChild(msgEl);
+        this.scrollToBottom();
+        return msgEl;
+    }
+
+    hideAITypingIndicator() {
+        const existing = document.querySelector('.ai-typing-indicator');
+        if (existing) {
+            existing.remove();
+        }
+    }
+
+    replaceTypingIndicator(itemId, text) {
+        const msgEl = this.messageElements.get(itemId);
+        if (msgEl) {
+            msgEl.textContent = text;
+            this.scrollToBottom();
+        }
     }
 
     /**
@@ -361,17 +409,53 @@ class UIManager {
      * @param {string} state - 'listening' | 'responding' | 'hidden'
      */
     setWaveformState(state) {
+        const container = this.elements.waveformContainer;
         const el = this.elements.waveform;
         if (!el) return;
 
-        el.classList.remove('waveform-listening', 'waveform-responding', 'hidden');
+        el.classList.remove('waveform-listening', 'waveform-responding', 'waveform-active');
 
         if (state === 'hidden') {
-            el.classList.add('hidden');
-        } else if (state === 'listening') {
-            el.classList.add('waveform-listening');
-        } else if (state === 'responding') {
-            el.classList.add('waveform-responding');
+            this.stopWaveformAnimation();
+            if (container) container.classList.add('hidden');
+        } else {
+            if (container) container.classList.remove('hidden');
+            el.classList.add('waveform-active');
+            
+            if (state === 'listening') {
+                el.classList.add('waveform-listening');
+            } else if (state === 'responding') {
+                el.classList.add('waveform-responding');
+            }
+            this.startWaveformAnimation();
+        }
+    }
+
+    startWaveformAnimation() {
+        if (this.waveformInterval) return;
+        
+        const bars = this.elements.waveform?.querySelectorAll('span');
+        if (!bars || bars.length === 0) return;
+
+        this.waveformInterval = setInterval(() => {
+            bars.forEach(bar => {
+                const height = Math.random() * 32 + 4;
+                bar.style.height = `${height}px`;
+            });
+        }, 150);
+    }
+
+    stopWaveformAnimation() {
+        if (this.waveformInterval) {
+            clearInterval(this.waveformInterval);
+            this.waveformInterval = null;
+        }
+        
+        const bars = this.elements.waveform?.querySelectorAll('span');
+        if (bars) {
+            bars.forEach(bar => {
+                bar.style.height = '4px';
+            });
         }
     }
 
