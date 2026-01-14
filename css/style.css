@@ -266,6 +266,22 @@ body {
     font-size: 1.125rem;
 }
 
+.env-selector {
+    margin-left: 12px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+}
+
+.env-selector:focus {
+    border-color: var(--primary-color);
+}
+
 .header-right {
     display: flex;
     align-items: center;

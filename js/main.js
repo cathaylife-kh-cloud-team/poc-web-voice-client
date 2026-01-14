@@ -4,13 +4,47 @@
  */
 
 // ============================================
+// 環境配置
+// ============================================
+const ENVIRONMENTS = {
+    prod: {
+        name: 'GCP (Prod)',
+        apiBaseUrl: 'https://api.ai.hotline.dasl.cloud'
+    },
+    local: {
+        name: 'Local',
+        apiBaseUrl: 'http://localhost:8080'
+    }
+};
+
+// 從 localStorage 或 URL 參數讀取環境設定
+function getInitialEnv() {
+    // 優先使用 URL 參數 ?env=local 或 ?env=prod
+    const urlParams = new URLSearchParams(window.location.search);
+    const envParam = urlParams.get('env');
+    if (envParam && ENVIRONMENTS[envParam]) {
+        return envParam;
+    }
+    // 其次使用 localStorage
+    const savedEnv = localStorage.getItem('voiceClientEnv');
+    if (savedEnv && ENVIRONMENTS[savedEnv]) {
+        return savedEnv;
+    }
+    // 預設使用 prod
+    return 'prod';
+}
+
+const currentEnv = getInitialEnv();
+
+// ============================================
 // 配置
 // ============================================
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:8080',
-    MOCK_MODE: false,    // false = 使用真實 WebRTC
-    GUEST_MODE: true,    // true = 跳過登入
-    DEBUG: true
+    API_BASE_URL: ENVIRONMENTS[currentEnv].apiBaseUrl,
+    MOCK_MODE: false,
+    GUEST_MODE: currentEnv === 'local',
+    DEBUG: true,
+    ENV: currentEnv
 };
 
 // ============================================
@@ -108,6 +142,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // 事件綁定
 // ============================================
 function bindEvents() {
+    // 環境選擇器
+    const envSelector = document.getElementById('env-selector');
+    if (envSelector) {
+        envSelector.value = CONFIG.ENV;
+        envSelector.addEventListener('change', (e) => {
+            localStorage.setItem('voiceClientEnv', e.target.value);
+            window.location.reload();
+        });
+    }
+
     // 登入表單
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
