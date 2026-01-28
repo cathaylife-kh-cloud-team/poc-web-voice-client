@@ -42,7 +42,6 @@ const currentEnv = getInitialEnv();
 const CONFIG = {
     API_BASE_URL: ENVIRONMENTS[currentEnv].apiBaseUrl,
     MOCK_MODE: false,
-    GUEST_MODE: currentEnv === 'local',
     DEBUG: true,
     ENV: currentEnv
 };
@@ -117,12 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化 API Service
     apiService.baseUrl = CONFIG.API_BASE_URL;
 
-    // 檢查登入狀態（Guest Mode 跳過登入）
-    if (CONFIG.GUEST_MODE || apiService.isLoggedIn()) {
-        const userInfo = CONFIG.GUEST_MODE
-            ? { name: '訪客' }
-            : apiService.getUserInfo();
-        ui.updateUserInfo(userInfo);
+    // 檢查登入狀態
+    if (apiService.isLoggedIn()) {
+        ui.updateUserInfo(apiService.getUserInfo());
         ui.showChatView();
         setState(AppState.IDLE);
     } else {
