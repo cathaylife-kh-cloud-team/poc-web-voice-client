@@ -405,6 +405,37 @@ class UIManager {
     }
 
     /**
+     * 顯示使用者資訊卡片（STEP 2 確認）
+     * @param {Object} userInfo - MCP query_user_info 回傳的 userInfo 物件
+     */
+    showUserInfoCard(userInfo) {
+        const fields = [
+            { label: '申報人ID', key: 'EQMT_APLEMP_ID' },
+            { label: '姓名', key: 'EQMT_APLEMP_NM' },
+            { label: '單位地址', key: 'DIV_ADRS' },
+            { label: '單位電話', key: 'EQMT_APLDIV_TLNO' },
+            { label: '手機', key: 'EQMT_APLEMP_MOBNO' }
+        ];
+
+        const fieldsHtml = fields.map(f => `
+            <div class="user-info-field">
+                <span class="label">${f.label}：</span>
+                <span class="value">${this._escapeHtml(userInfo[f.key] || '-')}</span>
+            </div>
+        `).join('');
+
+        const card = document.createElement('div');
+        card.className = 'message ai-message user-info-card';
+        card.innerHTML = `
+            <div class="user-info-card-title">申報人資訊</div>
+            ${fieldsHtml}
+        `;
+
+        this.elements.messages?.appendChild(card);
+        this.scrollToBottom();
+    }
+
+    /**
      * 設定波形動畫狀態
      * @param {string} state - 'listening' | 'responding' | 'hidden'
      */
@@ -555,7 +586,11 @@ class UIManager {
         } else if (msg.role === 'ai') {
             this.addMessage(msg.text, false);
         } else if (msg.role === 'card') {
-            this.showRepairConfirmCard(msg.data);
+            if (msg.cardType === 'userInfo') {
+                this.showUserInfoCard(msg.data);
+            } else {
+                this.showRepairConfirmCard(msg.data);
+            }
         } else {
             // Fallback for unknown types
             console.warn('Unknown message type:', msg);

@@ -800,6 +800,41 @@ body {
 }
 
 /* ============================================
+   User Info Card (STEP 2 確認)
+   ============================================ */
+.user-info-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #93c5fd;
+    padding: 16px;
+    width: 100%;
+}
+
+.user-info-card-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1e40af;
+}
+
+.user-info-field {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+}
+
+.user-info-field .label {
+    color: var(--text-secondary);
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.user-info-field .value {
+    color: var(--text-color);
+    font-weight: 500;
+    word-break: break-all;
+}
+
+/* ============================================
    Waveform Animation - 升級版（對齊 iOS 30 條動態波形）
    ============================================ */
 .waveform {

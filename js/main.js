@@ -301,6 +301,7 @@ async function handleStartCall() {
             onRepairForm: handleRepairForm,
             onDeviceList: handleDeviceList,
             onRepairComplete: handleRepairComplete,
+            onUserInfo: handleUserInfo,
             onMCPCall: handleMCPCall,
             onMusicControl: {
                 play: () => playHoldMusic(),
@@ -514,6 +515,24 @@ function handleRepairComplete(data) {
         ui.showRepairSuccess(data.orderNo, data.message);
     } else {
         ui.showToast(data.message || '建單失敗', 'error');
+    }
+}
+
+function handleUserInfo(data) {
+    if (data.type === 'info') {
+        ui.showUserInfoCard(data.data);
+
+        // 儲存卡片到對話
+        if (currentConversation) {
+            currentConversation.messages.push({
+                role: 'card',
+                cardType: 'userInfo',
+                data: data.data,
+                timestamp: Date.now()
+            });
+            currentConversation.updatedAt = Date.now();
+            conversationStorage.save(currentConversation);
+        }
     }
 }
 

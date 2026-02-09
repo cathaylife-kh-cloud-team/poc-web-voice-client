@@ -11,6 +11,7 @@ class EventHandler {
         this.onRepairForm = options.onRepairForm || (() => { });
         this.onDeviceList = options.onDeviceList || (() => { });
         this.onRepairComplete = options.onRepairComplete || (() => { });  // 新增: MCP 建單完成
+        this.onUserInfo = options.onUserInfo || (() => { });  // 新增: 使用者資訊卡片
         this.onMCPCall = options.onMCPCall || (() => { });
         this.onMusicControl = options.onMusicControl || { play: () => { }, stop: () => { } };  // 新增: 音樂控制
 
@@ -286,6 +287,12 @@ class EventHandler {
                 custodian: d.CTDN_NM
             }));
             this.onDeviceList({ type: 'list', devices });
+        }
+        else if (name === 'query_user_info') {
+            // 使用者資訊 - 顯示結構化卡片
+            if (output.found && output.userInfo) {
+                this.onUserInfo({ type: 'info', data: output.userInfo });
+            }
         }
         else if (name === 'create_equipment_repair_form') {
             // 建單完成 - 檢查成功/失敗
