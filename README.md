@@ -1,6 +1,8 @@
-# 智能客服語音助理 - Web Client
+# 智能客服語音助理 - Web Client (原生版)
 
 這是一個 Web 版的語音客戶端，取代 iOS App 進行設備報修的語音對話。
+
+> **Note**: 此為原生 HTML/CSS/JS 版本。Vue 3 重構版請見 [prod-1399-frontend](../prod-1399-frontend/)。
 
 ## 線上版本
 
@@ -13,7 +15,7 @@
 ### 1. 啟動後端服務
 
 ```bash
-cd /Users/yicianwang/github/cathaylife-kh-cloud-team/1399-realtime-assistant-repos
+# 在主倉根目錄
 docker compose up -d
 ```
 
