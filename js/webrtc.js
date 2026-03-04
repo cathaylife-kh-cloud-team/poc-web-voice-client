@@ -185,7 +185,8 @@ class WebRTCManager {
                 throw new Error(`Server returned ${response.status}: ${await response.text()}`);
             }
 
-            const answerSdp = await response.text();
+            const responseBody = await response.json();
+            const answerSdp = responseBody.data ?? responseBody;
             this.log('Received answer SDP');
 
             // 8. 設定 Remote Description

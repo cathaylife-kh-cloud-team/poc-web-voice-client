@@ -47,7 +47,7 @@ class ApiService {
      * @returns {Promise<{token, refreshToken, expiresInSeconds}>}
      */
     async login(username, password) {
-        const response = await fetch(`${this.baseUrl}/auth/v1/login`, {
+        const response = await fetch(`${this.baseUrl}/auth/v1/dasl/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -58,7 +58,8 @@ class ApiService {
             throw new Error(error.message || `登入失敗 (${response.status})`);
         }
 
-        const data = await response.json();
+        const body = await response.json();
+        const data = body.data ?? body;
         this.saveTokens(data.token, data.refreshToken);
         return data;
     }
@@ -72,7 +73,7 @@ class ApiService {
         if (!refreshToken) return false;
 
         try {
-            const response = await fetch(`${this.baseUrl}/auth/v1/refresh`, {
+            const response = await fetch(`${this.baseUrl}/auth/v1/dasl/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refreshToken })
@@ -80,7 +81,8 @@ class ApiService {
 
             if (!response.ok) return false;
 
-            const data = await response.json();
+            const body = await response.json();
+            const data = body.data ?? body;
             this.saveTokens(data.token, data.refreshToken);
             return true;
         } catch {
