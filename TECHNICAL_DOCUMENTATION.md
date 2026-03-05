@@ -135,7 +135,7 @@ sequenceDiagram
 
 ```javascript
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:8080',
+    API_BASE_URL: 'http://localhost:13901',
     MOCK_MODE: false,    // true: 純前端模擬，不連後端
     GUEST_MODE: true,    // true: 跳過登入畫面，直接進入通話介面
     DEBUG: true          // true: 開啟詳細 Console Log

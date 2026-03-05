@@ -23,7 +23,7 @@ class WebRTCManager {
         }
 
         // API 端點設定
-        this.apiBaseUrl = options.apiBaseUrl || 'http://localhost:8080';
+        this.apiBaseUrl = options.apiBaseUrl || 'http://localhost:13901';
 
         // Debug 模式
         this.debug = options.debug || false;

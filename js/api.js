@@ -5,7 +5,7 @@
 
 class ApiService {
     constructor(options = {}) {
-        this.baseUrl = options.baseUrl || 'http://localhost:8080';
+        this.baseUrl = options.baseUrl || 'http://localhost:13901';
         this.tokenKey = options.tokenKey || 'voiceClientToken';
         this.refreshTokenKey = options.refreshTokenKey || 'voiceClientRefreshToken';
     }

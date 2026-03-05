@@ -13,7 +13,7 @@ const ENVIRONMENTS = {
     },
     local: {
         name: 'Local',
-        apiBaseUrl: 'http://localhost:8080'
+        apiBaseUrl: 'http://localhost:13901'
     }
 };
 

@@ -107,7 +107,7 @@ IDLE → CONNECTING → LISTENING ⇄ RESPONDING
 ```javascript
 const ENVIRONMENTS = {
     prod: { apiBaseUrl: 'https://api.ai.hotline.dasl.cloud' },
-    local: { apiBaseUrl: 'http://localhost:8080' }
+    local: { apiBaseUrl: 'http://localhost:13901' }
 };
 
 const CONFIG = {

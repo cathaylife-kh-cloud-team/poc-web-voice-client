@@ -34,7 +34,7 @@ npx serve ./poc-web-voice-client -l 3002
 
 ### 3. 開啟瀏覽器
 
-前往 `http://localhost:3002`
+前往 `http://localhost:13905`
 
 ## 專案結構
 
